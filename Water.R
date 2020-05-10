@@ -117,3 +117,57 @@ convert<-which(filtered_water$result>60 & filtered_water$unit=="Deg. Celsius")
 filtered_water$unit[convert]<-"Deg. Fahrenheit"
 ggplot(filtered_water, mapping=aes(x=unit, y=result))+
   geom_boxplot() #Boxplots are now reasonable despite some statistical outliers
+
+
+#### Converting temperatures ####
+
+#We should convert the 51 fahrenheit measurements to celsius so they are on the same scale as the other >26000 temperature observations.
+
+#Find the fahrenheit measurements
+fahrenheit<-which(filtered_water$unit=="Deg. Fahrenheit")
+
+#Convert
+filtered_water$result[fahrenheit]<-(filtered_water$result[fahrenheit]-32)*(5/9)
+
+#Confirm the conversion worked
+ggplot(filtered_water, mapping=aes(x=unit, y=result))+
+  geom_boxplot() 
+
+#Change unit names
+filtered_water$unit[fahrenheit]<-"Deg. Celsius"
+
+#Confirm the conversion worked
+ggplot(filtered_water, mapping=aes(x=unit, y=result))+
+  geom_boxplot() 
+
+#Remove the empty factor levels (fahrenheit, feet, mg/L)
+filtered_water$unit<-droplevels(filtered_water$unit)
+summary(filtered_water)
+
+#### Widening the Data ####
+
+#We can widen the data - pH and temperatures are results for the same observation.
+
+#We don't need parameter type and unit anymore
+filtered_water<-filtered_water[, -c(4,7)]
+summary(filtered_water) #Ready to spread
+
+#Try to widen data
+filtered_water_wide<-spread(filtered_water, parameter, result) #Error - dupplicate identifier
+
+#Let's look at some erroneous examples
+filtered_water[c(49274, 49342, 49219, 49284),] #In some cases, more than one measurement was taken for the same site at the same time.
+
+#Find the duplicates
+dupe_check<-filtered_water[,-5]
+dupes<-which(duplicated(dupe_check)) #Duplicate rows
+
+#For convenience, we exclude the dups
+filtered_water<-filtered_water[-dupes,]
+
+#Retry the spread
+filtered_water_wide<-spread(filtered_water, parameter, result)
+
+#Clean column names
+colnames(filtered_water_wide)[4]<-"pH"
+colnames(filtered_water_wide)[5]<-"Temperature"
